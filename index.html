@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Salami Diben Koto? 💸</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, #0f6e56 0%, #1d9e75 50%, #5dcaa5 100%);
+      font-family: 'Segoe UI', sans-serif;
+    }
+
+    .card {
+      background: #fff;
+      border-radius: 24px;
+      padding: 2.5rem 2rem;
+      text-align: center;
+      max-width: 400px;
+      width: 90%;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+    }
+
+    h1 {
+      font-size: 28px;
+      color: #0f6e56;
+      margin-bottom: 6px;
+    }
+
+    .subtitle {
+      font-size: 15px;
+      color: #888;
+      margin-bottom: 1.5rem;
+    }
+
+    .wheel-wrap {
+      position: relative;
+      width: 280px;
+      height: 280px;
+      margin: 0 auto 1.5rem;
+    }
+
+    .pointer {
+      position: absolute;
+      top: -14px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 0; height: 0;
+      border-left: 12px solid transparent;
+      border-right: 12px solid transparent;
+      border-top: 24px solid #D85A30;
+      z-index: 10;
+    }
+
+    canvas {
+      border-radius: 50%;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+    }
+
+    .spin-btn {
+      background: #1d9e75;
+      color: white;
+      border: none;
+      padding: 14px 48px;
+      font-size: 18px;
+      font-weight: 600;
+      border-radius: 50px;
+      cursor: pointer;
+      letter-spacing: 1px;
+      transition: background 0.2s, transform 0.1s;
+    }
+
+    .spin-btn:hover { background: #0f6e56; }
+    .spin-btn:active { transform: scale(0.97); }
+    .spin-btn:disabled { background: #ccc; cursor: not-allowed; }
+
+    .result-card {
+      display: none;
+      margin-top: 1.5rem;
+      background: #f0faf6;
+      border: 1.5px solid #5dcaa5;
+      border-radius: 16px;
+      padding: 1.2rem 1.5rem;
+      animation: popIn 0.4s ease;
+    }
+
+    @keyframes popIn {
+      from { opacity: 0; transform: scale(0.9); }
+      to   { opacity: 1; transform: scale(1); }
+    }
+
+    .result-title { font-size: 14px; color: #888; margin-bottom: 6px; }
+    .result-value { font-size: 26px; font-weight: 700; color: #0f6e56; }
+    .result-msg   { font-size: 13px; color: #555; margin-top: 6px; }
+
+    .again-btn {
+      margin-top: 12px;
+      background: transparent;
+      border: 1.5px solid #1d9e75;
+      color: #1d9e75;
+      padding: 8px 24px;
+      border-radius: 50px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: background 0.2s;
+    }
+
+    .again-btn:hover { background: #e1f5ee; }
+  </style>
+</head>
+<body>
+
+<div class="card">
+  <h1>Salami Diben Koto? 💸</h1>
+  <p class="subtitle">Spin the wheel to claim your Eid salami!</p>
+
+  <div class="wheel-wrap">
+    <div class="pointer"></div>
+    <canvas id="wheel" width="280" height="280"></canvas>
+  </div>
+
+  <button class="spin-btn" id="spinBtn" onclick="spin()">SPIN NOW!</button>
+
+  <div class="result-card" id="resultCard">
+    <div class="result-title">Alhamdulillah! You got</div>
+    <div class="result-value" id="resultVal"></div>
+    <div class="result-msg"  id="resultMsg"></div>
+    <button class="again-btn" onclick="reset()">Spin Again</button>
+  </div>
+</div>
+
+<script>
+  const segments = [
+    { label: "Dua 🤲", color: "#5DCAA5", textColor: "#085041", special: true },
+    { label: "৳5",     color: "#7F77DD", textColor: "#fff" },
+    { label: "৳10",    color: "#378ADD", textColor: "#fff" },
+    { label: "Dua 🤲", color: "#5DCAA5", textColor: "#085041", special: true },
+    { label: "৳2",     color: "#EF9F27", textColor: "#fff" },
+    { label: "৳50",    color: "#E24B4A", textColor: "#fff" },
+    { label: "৳100",   color: "#D4537E", textColor: "#fff" },
+    { label: "Dua 🤲", color: "#5DCAA5", textColor: "#085041", special: true },
+  ];
+
+  const canvas  = document.getElementById('wheel');
+  const ctx     = canvas.getContext('2d');
+  const total   = segments.length;
+  const arc     = (2 * Math.PI) / total;
+  let currentAngle = 0;
+  let spinning  = false;
+
+  function drawWheel(angle) {
+    ctx.clearRect(0, 0, 280, 280);
+    const cx = 140, cy = 140, r = 136;
+
+    for (let i = 0; i < total; i++) {
+      const start = angle + i * arc;
+      const end   = start + arc;
+
+      ctx.beginPath();
+      ctx.moveTo(cx, cy);
+      ctx.arc(cx, cy, r, start, end);
+      ctx.closePath();
+      ctx.fillStyle = segments[i].color;
+      ctx.fill();
+      ctx.strokeStyle = '#fff';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      ctx.save();
+      ctx.translate(cx, cy);
+      ctx.rotate(start + arc / 2);
+      ctx.textAlign = 'right';
+      ctx.fillStyle = segments[i].textColor;
+      ctx.font = 'bold 14px Segoe UI, sans-serif';
+      ctx.fillText(segments[i].label, r - 12, 5);
+      ctx.restore();
+    }
+
+    // center circle
+    ctx.beginPath();
+    ctx.arc(cx, cy, 20, 0, 2 * Math.PI);
+    ctx.fillStyle = '#fff';
+    ctx.fill();
+    ctx.strokeStyle = '#ddd';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+  }
+
+  drawWheel(0);
+
+  function spin() {
+    if (spinning) return;
+    spinning = true;
+    document.getElementById('spinBtn').disabled = true;
+    document.getElementById('resultCard').style.display = 'none';
+
+    const extraSpins  = (5 + Math.floor(Math.random() * 5)) * 2 * Math.PI;
+    const randomStop  = Math.random() * 2 * Math.PI;
+    const targetAngle = currentAngle + extraSpins + randomStop;
+    const duration    = 4000;
+    const startTime   = performance.now();
+    const startAngle  = currentAngle;
+
+    function easeOut(t) { return 1 - Math.pow(1 - t, 3); }
+
+    function animate(now) {
+      const elapsed  = now - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      currentAngle   = startAngle + (targetAngle - startAngle) * easeOut(progress);
+      drawWheel(currentAngle);
+      if (progress < 1) {
+        requestAnimationFrame(animate);
+      } else {
+        currentAngle = currentAngle % (2 * Math.PI);
+        spinning = false;
+        showResult();
+      }
+    }
+
+    requestAnimationFrame(animate);
+  }
+
+  function showResult() {
+    const normalized = (2 * Math.PI - (currentAngle % (2 * Math.PI))) % (2 * Math.PI);
+    const idx = Math.floor(normalized / arc) % total;
+    const seg = segments[idx];
+
+    document.getElementById('resultVal').textContent = seg.special
+      ? "Unlimited Dua! 🤲"
+      : seg.label + " Taka!";
+
+    document.getElementById('resultMsg').textContent = seg.special
+      ? "May Allah accept your duas this Eid."
+      : "Eid Mubarak! 🌙 Go collect your salami!";
+
+    document.getElementById('resultCard').style.display = 'block';
+  }
+
+  function reset() {
+    document.getElementById('resultCard').style.display = 'none';
+    document.getElementById('spinBtn').disabled = false;
+  }
+</script>
+
+</body>
+</html>
